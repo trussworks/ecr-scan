@@ -1,11 +1,17 @@
-module github.com/trussworks/cli-template
+module github.com/trussworks/ecr-scan
 
-go 1.14
+go 1.15
 
 require (
+	github.com/avast/retry-go v3.0.0+incompatible
+	github.com/aws/aws-lambda-go v1.21.0
+	github.com/aws/aws-sdk-go v1.36.14
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
-	github.com/kr/pretty v0.2.0 // indirect
+	github.com/go-playground/validator/v10 v10.4.1
+	github.com/google/go-cmp v0.3.0
+	github.com/kr/text v0.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.3.2 // indirect
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/pelletier/go-toml v1.8.0 // indirect
 	github.com/spf13/afero v1.3.0 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
@@ -13,9 +19,11 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.7.1
-	github.com/stretchr/testify v1.6.1 // indirect
-	golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1 // indirect
-	golang.org/x/text v0.3.3 // indirect
-	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	github.com/stretchr/testify v1.6.1
+	go.uber.org/zap v1.16.0
+	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
+	golang.org/x/tools v0.0.0-20200506181757-c20a87c16a39 // indirect
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/ini.v1 v1.57.0 // indirect
+	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
 )
