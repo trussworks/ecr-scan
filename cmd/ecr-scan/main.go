@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -32,7 +31,7 @@ func makeECRClient(region, profile string) *ecr.ECR {
 	return ecrClient
 }
 
-func evaluateImage() (string, error) {
+func evaluateImage() (ecrscan.Report, error) {
 	evaluator := ecrscan.Evaluator{
 		MaxScanAge: config.GetInt("maxScanAge"),
 		Logger:     logger,
@@ -45,20 +44,13 @@ func evaluateImage() (string, error) {
 	scanResult, err := evaluator.Evaluate(&target)
 	if err != nil {
 		logger.Error("Error evaluating target image", zap.Error(err))
-		return "", err
+		return scanResult, err
 	}
-	scanResultBytes, err := json.Marshal(scanResult)
-	if err != nil {
-		logger.Error("Error converting scan result to JSON", zap.Error(err))
-		return "", err
-	}
-	scanResultString := string(scanResultBytes)
-	logger.Info("Scan result",
-		zap.String("Report", scanResultString))
-	return scanResultString, nil
+	logger.Info("Scan result", zap.Any("Report", scanResult))
+	return scanResult, nil
 }
 
-func HandleRequest(ctx context.Context, target ecrscan.Target) (string, error) {
+func HandleRequest(ctx context.Context, target ecrscan.Target) (ecrscan.Report, error) {
 	config.Set("repository", target.Repository)
 	config.Set("tag", target.ImageTag)
 	return evaluateImage()

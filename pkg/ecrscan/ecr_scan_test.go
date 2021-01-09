@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecr/ecriface"
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"
 )
@@ -18,27 +18,14 @@ type mockECRClient struct {
 	ecriface.ECRAPI
 }
 
-var maxScanAge = 24
+const maxScanAge = 24
+
 var logger, _ = zap.NewProduction()
 var ecrClient = &mockECRClient{}
 var evaluator = Evaluator{
 	MaxScanAge: maxScanAge,
 	Logger:     logger,
 	ECRClient:  ecrClient,
-}
-
-func relativeTimePointer(hours float64) *time.Time {
-	t := time.Now()
-	newT := t.Add(-time.Duration(hours) * time.Hour)
-	return &newT
-}
-
-func (m *mockECRClient) DescribeImageScanFindings(input *ecr.DescribeImageScanFindingsInput) (*ecr.DescribeImageScanFindingsOutput, error) {
-	if _, ok := testCases[*input.ImageId.ImageTag]; ok {
-		return testCases[*input.ImageId.ImageTag], nil
-	} else {
-		return nil, errors.New("error")
-	}
 }
 
 var testCases = map[string]*ecr.DescribeImageScanFindingsOutput{
@@ -125,17 +112,39 @@ var testCases = map[string]*ecr.DescribeImageScanFindingsOutput{
 	},
 }
 
+// relativeTimePointer is a helper function that returns a pointer to a time
+// object relative to the current time. A negative number represents a time in
+// the future; a positive number represents a time in the past.
+//
+// Example:
+//   relativeTimePointer(-3) -- 3 hours from now
+//   relativeTimePointer(1)  -- 1 hour ago
+//   relativeTimePointer(0)  -- now
+func relativeTimePointer(hours float64) *time.Time {
+	t := time.Now()
+	newT := t.Add(-time.Duration(hours) * time.Hour)
+	return &newT
+}
+
+func (m *mockECRClient) DescribeImageScanFindings(input *ecr.DescribeImageScanFindingsInput) (*ecr.DescribeImageScanFindingsOutput, error) {
+	if _, ok := testCases[*input.ImageId.ImageTag]; ok {
+		return testCases[*input.ImageId.ImageTag], nil
+	} else {
+		return nil, errors.New("error")
+	}
+}
+
 func TestEvaluate(t *testing.T) {
 	tests := []struct {
 		target   *Target
-		expected *Report
+		expected Report
 	}{
 		{
 			&Target{
 				ImageTag:   "ScanCompletedNoFindings",
 				Repository: "test-repo",
 			},
-			&Report{
+			Report{
 				TotalFindings: 0,
 			},
 		},
@@ -144,7 +153,7 @@ func TestEvaluate(t *testing.T) {
 				ImageTag:   "ScanCompletedOneUndefinedFinding",
 				Repository: "test-repo",
 			},
-			&Report{
+			Report{
 				TotalFindings: 1,
 			},
 		},
@@ -153,7 +162,7 @@ func TestEvaluate(t *testing.T) {
 				ImageTag:   "ScanCompletedOneCriticalFinding",
 				Repository: "test-repo",
 			},
-			&Report{
+			Report{
 				TotalFindings: 1,
 			},
 		},
@@ -162,7 +171,7 @@ func TestEvaluate(t *testing.T) {
 				ImageTag:   "ScanCompletedOneFindingEachCategory",
 				Repository: "test-repo",
 			},
-			&Report{
+			Report{
 				TotalFindings: 6,
 			},
 		},
@@ -171,18 +180,16 @@ func TestEvaluate(t *testing.T) {
 				ImageTag:   "ScanCompletedMultipleFindingsEachCategory",
 				Repository: "test-repo",
 			},
-			&Report{
+			Report{
 				TotalFindings: 136,
 			},
 		},
 	}
 	for _, tt := range tests {
-		testname := tt.target.ImageTag
-		t.Run(testname, func(t *testing.T) {
-			report, _ := evaluator.Evaluate(tt.target)
-			if !cmp.Equal(report, tt.expected) {
-				t.Errorf("got %+v, want %+v", *report, *tt.expected)
-			}
+		t.Run(tt.target.ImageTag, func(t *testing.T) {
+			report, err := evaluator.Evaluate(tt.target)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.expected, report)
 		})
 	}
 }
@@ -214,15 +221,13 @@ func TestEvaluateWithBadInput(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		testname := tt.description
-		t.Run(testname, func(t *testing.T) {
-			report, err := evaluator.Evaluate(tt.target)
-			if err == nil {
-				t.Errorf("got %+v, want error", *report)
-			}
+		t.Run(tt.description, func(t *testing.T) {
+			_, err := evaluator.Evaluate(tt.target)
+			assert.NotNil(t, err)
 		})
 	}
 }
+
 func TestIsOldScan(t *testing.T) {
 	tests := []struct {
 		description string
@@ -287,49 +292,30 @@ func TestIsOldScan(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		testname := tt.description
-		t.Run(testname, func(t *testing.T) {
-			result := evaluator.isOldScan(tt.findings)
-			if result != tt.expected {
-				t.Errorf("got %v, want %v", result, tt.expected)
-			}
+		t.Run(tt.description, func(t *testing.T) {
+			assert.Equal(t, tt.expected, evaluator.isOldScan(tt.findings))
 		})
 	}
 }
 
-func TestCalculateTotalFindings(t *testing.T) {
+func TestCalculateTotalFindingsWithBadInput(t *testing.T) {
 	tests := []struct {
 		description string
+		findings    *ecr.ImageScanFindings
 		expected    int
 	}{
 		{
-			"ScanCompletedNoFindings",
-			0,
-		},
-		{
-			"ScanCompletedOneUndefinedFinding",
-			1,
-		},
-		{
-			"ScanCompletedOneCriticalFinding",
-			1,
-		},
-		{
-			"ScanCompletedOneFindingEachCategory",
-			6,
-		},
-		{
-			"ScanCompletedMultipleFindingsEachCategory",
-			136,
+			"Nil scan findings",
+			nil,
+			-1,
 		},
 	}
 	for _, tt := range tests {
-		testname := tt.description
-		t.Run(testname, func(t *testing.T) {
-			total := evaluator.calculateTotalFindings(testCases[tt.description].ImageScanFindings)
-			if total != tt.expected {
-				t.Errorf("got %d, want %d", total, tt.expected)
-			}
+		t.Run(tt.description, func(t *testing.T) {
+			result, err := evaluator.calculateTotalFindings(tt.findings)
+			assert.Equal(t, tt.expected, result, "result should be -1")
+			assert.NotNil(t, err)
 		})
 	}
+
 }

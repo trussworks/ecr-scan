@@ -2,17 +2,16 @@ package ecrscan
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
-	"github.com/avast/retry-go"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecr/ecriface"
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
 )
-
-var validate *validator.Validate
 
 // Target specifies the ECR image to retrieve scan findings for
 type Target struct {
@@ -33,43 +32,31 @@ type Evaluator struct {
 }
 
 // Evaluate returns vulnerability scan information for a specified ECR image.
-// The function queries ECR for the image's current scan findings. If the most
-// recent scan is older than MaxScanAge, the function initiates a new scan. The
-// function response includes a Report of the image's total scan findings.
-func (e *Evaluator) Evaluate(target *Target) (*Report, error) {
-	validate = validator.New()
+func (e *Evaluator) Evaluate(target *Target) (Report, error) {
+	validate := validator.New()
 	err := validate.Struct(target)
 	if err != nil {
-		e.Logger.Error("Invalid input", zap.Error(err))
-		return nil, errors.New("Invalid target")
+		return Report{}, fmt.Errorf("invalid target: %w", err)
 	}
-	e.Logger.Info("Evaluating image",
+	e.Logger.Debug("Evaluating image",
 		zap.String("repository", target.Repository),
 		zap.String("imageTag", target.ImageTag))
-	findings, err := e.getImageFindings(target)
+	findings, err := e.getCurrentImageFindings(target)
 	if err != nil {
-		return nil, err
+		return Report{}, fmt.Errorf("get current findings failed: %v", err)
 	}
-	if e.isOldScan(findings.ImageScanFindings) {
-		e.Logger.Info("Most recent scan exceeds max scan age")
-		if scanErr := e.scan(target); scanErr != nil {
-			return nil, scanErr
-		}
-		findings, err = e.getImageFindings(target)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		e.Logger.Info("Generating scan report")
+	findingsCount, err := e.calculateTotalFindings(findings.ImageScanFindings)
+	if err != nil {
+		return Report{}, fmt.Errorf("calculating total findings failed: %v", err)
 	}
-	return &Report{
-		TotalFindings: e.calculateTotalFindings(findings.ImageScanFindings),
+	return Report{
+		TotalFindings: findingsCount,
 	}, nil
 }
 
 // scan initiates an ECR vulnerability scan for an image.
 func (e *Evaluator) scan(target *Target) error {
-	e.Logger.Info("Scanning image")
+	e.Logger.Debug("Scanning image")
 	_, err := e.ECRClient.StartImageScan(&ecr.StartImageScanInput{
 		ImageId: &ecr.ImageIdentifier{
 			ImageTag: aws.String(target.ImageTag),
@@ -77,65 +64,56 @@ func (e *Evaluator) scan(target *Target) error {
 		RepositoryName: aws.String(target.Repository),
 	})
 	if err != nil {
-		e.Logger.Error("Unable to start image scan",
-			zap.String("error", err.Error()))
+		return fmt.Errorf("start image scan failed: %v", err)
 	}
-	return err
+	err = e.ECRClient.WaitUntilImageScanComplete(&ecr.DescribeImageScanFindingsInput{
+		ImageId: &ecr.ImageIdentifier{
+			ImageTag: aws.String(target.ImageTag),
+		},
+		RepositoryName: aws.String(target.Repository),
+	})
+	if err != nil {
+		return fmt.Errorf("wait for image scan to complete failed: %v", err)
+	}
+	return nil
 }
 
 // getImageFindings returns image scan findings for a target image. It will wait
 // until an image scan is complete and will initiate a scan if an existing scan
 // is not found.
-func (e *Evaluator) getImageFindings(target *Target) (*ecr.DescribeImageScanFindingsOutput, error) {
-	var scanFindings *ecr.DescribeImageScanFindingsOutput
-	// Wrap the query in a retry
-	err := retry.Do(
-		func() error {
-			result, err := e.ECRClient.DescribeImageScanFindings(
-				&ecr.DescribeImageScanFindingsInput{
-					ImageId: &ecr.ImageIdentifier{
-						ImageTag: aws.String(target.ImageTag),
-					},
-					RepositoryName: aws.String(target.Repository),
-				})
-			if err != nil {
-				// If the repo is not configured to scan on
-				// push, the image may not have an existing
-				// scan. In that scenario, initiate a scan.
-				var aerr *ecr.ScanNotFoundException
-				if errors.As(err, &aerr) {
-					e.Logger.Info("No scan found for image")
-					if scanErr := e.scan(target); scanErr != nil {
-						return retry.Unrecoverable(errors.New("Error scanning image"))
-					}
-					return errors.New("Waiting for new scan to complete")
-				} else {
-					return retry.Unrecoverable(errors.New("Unable to describe scan findings"))
-				}
-			}
-			// Check the scan status and drop out of the retry block
-			// if the scan is complete.
-			switch scanStatus := *result.ImageScanStatus.Status; scanStatus {
-			case ecr.ScanStatusFailed:
-				return retry.Unrecoverable(errors.New("Image scan failed"))
-			case ecr.ScanStatusInProgress:
-				return errors.New("Image scan still in progress")
-			case ecr.ScanStatusComplete:
-				scanFindings = result
-			}
-			return nil
+func (e *Evaluator) getCurrentImageFindings(target *Target) (*ecr.DescribeImageScanFindingsOutput, error) {
+	// get findings
+	imageScanFindingsInput := &ecr.DescribeImageScanFindingsInput{
+		ImageId: &ecr.ImageIdentifier{
+			ImageTag: aws.String(target.ImageTag),
 		},
-		retry.OnRetry(func(n uint, err error) {
-			e.Logger.Info("Retry describe image scan findings",
-				zap.Int("attempt", int(n)),
-				zap.String("reason", err.Error()))
-		}),
-		retry.Delay(time.Duration(15)*time.Second),
-	)
+		RepositoryName: aws.String(target.Repository)}
+	result, err := e.ECRClient.DescribeImageScanFindings(imageScanFindingsInput)
+	scanNotFound := false
 	if err != nil {
-		return nil, errors.New("Unable to retrieve scan findings")
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case ecr.ErrCodeScanNotFoundException:
+				e.Logger.Debug("No scan found.")
+				scanNotFound = true
+			}
+		}
+		return nil, fmt.Errorf("describe image scan findings failed: %v", err)
 	}
-	return scanFindings, nil
+
+	// initiate new scan if existing scan is old or nonexistent
+	if scanNotFound || e.isOldScan(result.ImageScanFindings) {
+		err = e.scan(target)
+		if err != nil {
+			return nil, fmt.Errorf("scan failed: %v", err)
+		}
+		result, err = e.ECRClient.DescribeImageScanFindings(imageScanFindingsInput)
+		if err != nil {
+			return nil, fmt.Errorf("describe image scan findings failed: %v", err)
+		}
+	}
+
+	return result, nil
 }
 
 // isOldScan returns true if the image scan was completed more than MaxScanAge
@@ -152,11 +130,13 @@ func (e *Evaluator) isOldScan(findings *ecr.ImageScanFindings) bool {
 // (https://docs.aws.amazon.com/sdk-for-go/api/service/ecr/#DescribeImageScanFindingsInput).
 // Thus, rather than relying on the length of the ImageScanFinding slice, the
 // function calculates total findings based on the FindingSeverityCounts map.
-func (e *Evaluator) calculateTotalFindings(findings *ecr.ImageScanFindings) int {
-	counts := findings.FindingSeverityCounts
+func (e *Evaluator) calculateTotalFindings(findings *ecr.ImageScanFindings) (int, error) {
+	if findings == nil {
+		return -1, errors.New("findings input is nil")
+	}
 	total := 0
-	for _, v := range counts {
+	for _, v := range findings.FindingSeverityCounts {
 		total += int(*v)
 	}
-	return total
+	return total, nil
 }
