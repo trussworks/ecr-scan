@@ -3,12 +3,10 @@ module github.com/trussworks/ecr-scan
 go 1.15
 
 require (
-	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/aws/aws-lambda-go v1.21.0
 	github.com/aws/aws-sdk-go v1.36.14
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-playground/validator/v10 v10.4.1
-	github.com/google/go-cmp v0.3.0
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.3.2 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
@@ -17,7 +15,6 @@ require (
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.6.1
 	go.uber.org/zap v1.16.0
