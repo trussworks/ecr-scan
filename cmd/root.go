@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"context"
@@ -16,7 +16,6 @@ import (
 	"go.uber.org/zap"
 )
 
-var config *viper.Viper
 var logger *zap.Logger
 
 // This function is for establishing our session with AWS.
@@ -33,13 +32,13 @@ func makeECRClient(region, profile string) *ecr.ECR {
 
 func evaluateImage() (ecrscan.Report, error) {
 	evaluator := ecrscan.Evaluator{
-		MaxScanAge: config.GetInt("maxScanAge"),
+		MaxScanAge: viper.GetInt("maxScanAge"),
 		Logger:     logger,
-		ECRClient:  makeECRClient(config.GetString("region"), config.GetString("profile")),
+		ECRClient:  makeECRClient(viper.GetString("region"), viper.GetString("profile")),
 	}
 	target := ecrscan.Target{
-		Repository: config.GetString("repository"),
-		ImageTag:   config.GetString("tag"),
+		Repository: viper.GetString("repository"),
+		ImageTag:   viper.GetString("tag"),
 	}
 	scanResult, err := evaluator.Evaluate(&target)
 	if err != nil {
@@ -51,8 +50,8 @@ func evaluateImage() (ecrscan.Report, error) {
 }
 
 func HandleRequest(ctx context.Context, target ecrscan.Target) (ecrscan.Report, error) {
-	config.Set("repository", target.Repository)
-	config.Set("tag", target.ImageTag)
+	viper.Set("repository", target.Repository)
+	viper.Set("tag", target.ImageTag)
 	return evaluateImage()
 }
 
@@ -70,7 +69,7 @@ var rootCmd = &cobra.Command{
 		}
 		defer logger.Sync()
 
-		if config.GetBool("lambda") {
+		if viper.GetBool("lambda") {
 			lambda.Start(HandleRequest)
 		} else {
 			evaluateImage()
@@ -78,7 +77,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func execute() {
+func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -86,25 +85,20 @@ func execute() {
 }
 
 func init() {
-	config = viper.New()
-	config.AutomaticEnv()
-	config.BindEnv("repository", "ECR_REPOSITORY")
-	config.BindEnv("tag", "IMAGE_TAG")
-	config.BindEnv("lambda", "LAMBDA")
-	config.BindEnv("maxScanAge", "MAX_SCAN_AGE")
-	config.BindEnv("profile", "AWS_PROFILE")
-	config.BindEnv("region", "AWS_REGION")
+	viper.AutomaticEnv()
+	viper.BindEnv("repository", "ECR_REPOSITORY")
+	viper.BindEnv("tag", "IMAGE_TAG")
+	viper.BindEnv("lambda", "LAMBDA")
+	viper.BindEnv("maxScanAge", "MAX_SCAN_AGE")
+	viper.BindEnv("profile", "AWS_PROFILE")
+	viper.BindEnv("region", "AWS_REGION")
 	rootCmd.Flags().StringP("repository", "r", "", "ECR repository where the image is located")
 	rootCmd.Flags().StringP("tag", "t", "", "Image tag to retrieve findings for")
 	rootCmd.Flags().Bool("lambda", false, "Run as Lambda function")
 	rootCmd.Flags().IntP("maxScanAge", "m", 24, "Maximum allowed age for image scan (hours)")
 	rootCmd.Flags().String("profile", "", "The AWS profile to use")
 	rootCmd.Flags().String("region", "", "The AWS region to use")
-	config.BindPFlags(rootCmd.Flags())
-	config.SetDefault("lambda", false)
-	config.SetDefault("maxScanAge", 24)
-}
-
-func main() {
-	execute()
+	viper.BindPFlags(rootCmd.Flags())
+	viper.SetDefault("lambda", false)
+	viper.SetDefault("maxScanAge", 24)
 }
