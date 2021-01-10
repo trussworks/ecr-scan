@@ -1,4 +1,4 @@
-# goreleaser removes the `v` prefix when building and this does too
+SHELL = /bin/sh
 VERSION = 0.0.1
 
 ifdef CIRCLECI
@@ -16,9 +16,18 @@ help:  ## Print the help documentation
 build_local: ## Build ecr-scan locally
 	go build -ldflags "$(LDFLAGS) -X github.com/trussworks/ecr-scan/cmd.version=${VERSION}" -o bin/ecr-scan .
 
-.PHONY: build_docker
-build_docker: build_linux ## Build ecr-scan docker image
-	docker image build -t ecr-scan:"${VERSION}" .
+.PHONY: build_lambda_builder
+build_lambda_builder: ## Build docker image for building lambda handler
+	docker image pull lambci/lambda:build-go1.x
+	docker image build -t ecr-scan-builder:"${VERSION}" .
+
+.PHONY: build_lambda_handler
+build_lambda_handler: build_lambda_builder ## Build lambda binary
+	docker container run --rm -it -v "${PWD}":/app ecr-scan-builder:"${VERSION}" go build -ldflags "$(LDFLAGS) -X github.com/trussworks/ecr-scan/cmd.version=${VERSION}" -o bin/ecr-scan .
+
+.PHONY: run_lambda_handler
+run_lambda_handler: build_lambda_handler ## Run the lambda handler in the background
+	docker container run --rm -e LAMBDA=1 -e DOCKER_LAMBDA_STAY_OPEN=1 -p 9001:9001 -v "${PWD}":/var/task:ro,delegated lambci/lambda:go1.x bin/ecr-scan
 
 .PHONY: clean
 clean: ## Clean all generated files
