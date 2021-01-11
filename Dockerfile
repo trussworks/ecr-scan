@@ -1,4 +1,4 @@
-FROM lambci/lambda:build-go1.x AS base
+FROM golang:1.15.6 AS base
 
 WORKDIR /app
 

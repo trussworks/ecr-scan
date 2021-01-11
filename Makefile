@@ -11,7 +11,6 @@ build_local: ## Build ecr-scan locally
 
 .PHONY: build_lambda_builder
 build_lambda_builder: ## Build docker image for building lambda handler
-	docker image pull lambci/lambda:build-go1.x
 	docker image build -t ecr-scan-builder:"${VERSION}" .
 
 .PHONY: build_lambda_handler
