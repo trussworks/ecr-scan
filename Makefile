@@ -1,20 +1,13 @@
 SHELL = /bin/sh
 VERSION = 0.0.1
 
-ifdef CIRCLECI
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Linux)
-		LDFLAGS=-linkmode external -extldflags -static
-	endif
-endif
-
 .PHONY: help
 help:  ## Print the help documentation
 	@grep -E '^[/a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: build_local
 build_local: ## Build ecr-scan locally
-	go build -ldflags "$(LDFLAGS) -X github.com/trussworks/ecr-scan/cmd.version=${VERSION}" -o bin/ecr-scan .
+	go build -o bin/ecr-scan .
 
 .PHONY: build_lambda_builder
 build_lambda_builder: ## Build docker image for building lambda handler
@@ -23,7 +16,7 @@ build_lambda_builder: ## Build docker image for building lambda handler
 
 .PHONY: build_lambda_handler
 build_lambda_handler: build_lambda_builder ## Build lambda binary
-	docker container run --rm -it -v "${PWD}":/app ecr-scan-builder:"${VERSION}" go build -ldflags "$(LDFLAGS) -X github.com/trussworks/ecr-scan/cmd.version=${VERSION}" -o bin/ecr-scan .
+	docker container run --rm -it -v "${PWD}":/app ecr-scan-builder:"${VERSION}" go build -o bin/ecr-scan .
 
 .PHONY: run_lambda_handler
 run_lambda_handler: build_lambda_handler ## Run the lambda handler in the background
