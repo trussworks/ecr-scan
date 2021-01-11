@@ -40,19 +40,19 @@ func evaluateImage() (ecrscan.Report, error) {
 		Repository: viper.GetString("repository"),
 		ImageTag:   viper.GetString("tag"),
 	}
-	scanResult, err := evaluator.Evaluate(&target)
-	if err != nil {
-		logger.Error("Error evaluating target image", zap.Error(err))
-		return scanResult, err
-	}
-	logger.Info("Scan result", zap.Any("Report", scanResult))
-	return scanResult, nil
+	return evaluator.Evaluate(&target)
 }
 
+// HandleRequest is the root command's Lambda handler
 func HandleRequest(ctx context.Context, target ecrscan.Target) (ecrscan.Report, error) {
 	viper.Set("repository", target.Repository)
 	viper.Set("tag", target.ImageTag)
-	return evaluateImage()
+	result, err := evaluateImage()
+	if err != nil {
+		logger.Error("Error evaluating target image", zap.Error(err))
+	}
+	logger.Info("Scan result", zap.Any("Report", result))
+	return result, err
 }
 
 var rootCmd = &cobra.Command{
@@ -67,16 +67,25 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("could not initialize zap logger: %v", err)
 		}
-		defer logger.Sync()
 
 		if viper.GetBool("lambda") {
 			lambda.Start(HandleRequest)
 		} else {
-			evaluateImage()
+			result, aerr := evaluateImage()
+			if aerr != nil {
+				logger.Error("Error evaluating target image", zap.Error(aerr))
+			}
+			logger.Info("Scan result", zap.Any("Report", result))
+		}
+
+		err = logger.Sync()
+		if err != nil {
+			log.Fatal("could not sync logger")
 		}
 	},
 }
 
+// Execute root command execute function
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -86,19 +95,33 @@ func Execute() {
 
 func init() {
 	viper.AutomaticEnv()
-	viper.BindEnv("repository", "ECR_REPOSITORY")
-	viper.BindEnv("tag", "IMAGE_TAG")
-	viper.BindEnv("lambda", "LAMBDA")
-	viper.BindEnv("maxScanAge", "MAX_SCAN_AGE")
-	viper.BindEnv("profile", "AWS_PROFILE")
-	viper.BindEnv("region", "AWS_REGION")
+	if err := viper.BindEnv("repository", "ECR_REPOSITORY"); err != nil {
+		log.Fatal(err)
+	}
+	if err := viper.BindEnv("tag", "IMAGE_TAG"); err != nil {
+		log.Fatal(err)
+	}
+	if err := viper.BindEnv("lambda", "LAMBDA"); err != nil {
+		log.Fatal(err)
+	}
+	if err := viper.BindEnv("maxScanAge", "MAX_SCAN_AGE"); err != nil {
+		log.Fatal(err)
+	}
+	if err := viper.BindEnv("profile", "AWS_PROFILE"); err != nil {
+		log.Fatal(err)
+	}
+	if err := viper.BindEnv("region", "AWS_REGION"); err != nil {
+		log.Fatal(err)
+	}
 	rootCmd.Flags().StringP("repository", "r", "", "ECR repository where the image is located")
 	rootCmd.Flags().StringP("tag", "t", "", "Image tag to retrieve findings for")
 	rootCmd.Flags().Bool("lambda", false, "Run as Lambda function")
 	rootCmd.Flags().IntP("maxScanAge", "m", 24, "Maximum allowed age for image scan (hours)")
 	rootCmd.Flags().String("profile", "", "The AWS profile to use")
 	rootCmd.Flags().String("region", "", "The AWS region to use")
-	viper.BindPFlags(rootCmd.Flags())
+	if err := viper.BindPFlags(rootCmd.Flags()); err != nil {
+		log.Fatal(err)
+	}
 	viper.SetDefault("lambda", false)
 	viper.SetDefault("maxScanAge", 24)
 }

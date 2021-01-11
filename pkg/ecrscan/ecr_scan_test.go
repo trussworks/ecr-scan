@@ -29,7 +29,7 @@ var evaluator = Evaluator{
 }
 
 var testCases = map[string]*ecr.DescribeImageScanFindingsOutput{
-	"ScanCompletedNoFindings": &ecr.DescribeImageScanFindingsOutput{
+	"ScanCompletedNoFindings": {
 		ImageScanFindings: &ecr.ImageScanFindings{
 			FindingSeverityCounts: map[string]*int64{
 				ecr.FindingSeverityUndefined:     aws.Int64(0),
@@ -45,7 +45,7 @@ var testCases = map[string]*ecr.DescribeImageScanFindingsOutput{
 			Status: aws.String(ecr.ScanStatusComplete),
 		},
 	},
-	"ScanCompletedOneUndefinedFinding": &ecr.DescribeImageScanFindingsOutput{
+	"ScanCompletedOneUndefinedFinding": {
 		ImageScanFindings: &ecr.ImageScanFindings{
 			FindingSeverityCounts: map[string]*int64{
 				ecr.FindingSeverityUndefined:     aws.Int64(1),
@@ -61,7 +61,7 @@ var testCases = map[string]*ecr.DescribeImageScanFindingsOutput{
 			Status: aws.String(ecr.ScanStatusComplete),
 		},
 	},
-	"ScanCompletedOneCriticalFinding": &ecr.DescribeImageScanFindingsOutput{
+	"ScanCompletedOneCriticalFinding": {
 		ImageScanFindings: &ecr.ImageScanFindings{
 			FindingSeverityCounts: map[string]*int64{
 				ecr.FindingSeverityUndefined:     aws.Int64(0),
@@ -78,7 +78,7 @@ var testCases = map[string]*ecr.DescribeImageScanFindingsOutput{
 		},
 	},
 
-	"ScanCompletedOneFindingEachCategory": &ecr.DescribeImageScanFindingsOutput{
+	"ScanCompletedOneFindingEachCategory": {
 		ImageScanFindings: &ecr.ImageScanFindings{
 			FindingSeverityCounts: map[string]*int64{
 				ecr.FindingSeverityUndefined:     aws.Int64(1),
@@ -94,7 +94,7 @@ var testCases = map[string]*ecr.DescribeImageScanFindingsOutput{
 			Status: aws.String(ecr.ScanStatusComplete),
 		},
 	},
-	"ScanCompletedMultipleFindingsEachCategory": &ecr.DescribeImageScanFindingsOutput{
+	"ScanCompletedMultipleFindingsEachCategory": {
 		ImageScanFindings: &ecr.ImageScanFindings{
 			FindingSeverityCounts: map[string]*int64{
 				ecr.FindingSeverityUndefined:     aws.Int64(5),
@@ -129,9 +129,8 @@ func relativeTimePointer(hours float64) *time.Time {
 func (m *mockECRClient) DescribeImageScanFindings(input *ecr.DescribeImageScanFindingsInput) (*ecr.DescribeImageScanFindingsOutput, error) {
 	if _, ok := testCases[*input.ImageId.ImageTag]; ok {
 		return testCases[*input.ImageId.ImageTag], nil
-	} else {
-		return nil, errors.New("error")
 	}
+	return nil, errors.New("error")
 }
 
 func TestEvaluate(t *testing.T) {

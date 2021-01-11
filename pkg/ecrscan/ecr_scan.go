@@ -92,13 +92,15 @@ func (e *Evaluator) getCurrentImageFindings(target *Target) (*ecr.DescribeImageS
 	scanNotFound := false
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case ecr.ErrCodeScanNotFoundException:
+			if aerr.Code() == ecr.ErrCodeScanNotFoundException {
 				e.Logger.Debug("No scan found.")
 				scanNotFound = true
+			} else {
+				return nil, fmt.Errorf("describe image scan findings failed: %v", err)
 			}
+		} else {
+			return nil, fmt.Errorf("describe image scan findings failed: %v", err)
 		}
-		return nil, fmt.Errorf("describe image scan findings failed: %v", err)
 	}
 
 	// initiate new scan if existing scan is old or nonexistent
