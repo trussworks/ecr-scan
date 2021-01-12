@@ -50,8 +50,9 @@ func HandleRequest(ctx context.Context, target ecrscan.Target) (ecrscan.Report, 
 	result, err := evaluateImage()
 	if err != nil {
 		logger.Error("Error evaluating target image", zap.Error(err))
+	} else {
+		logger.Info("Scan result", zap.Any("Report", result))
 	}
-	logger.Info("Scan result", zap.Any("Report", result))
 	return result, err
 }
 
@@ -74,8 +75,9 @@ var rootCmd = &cobra.Command{
 			result, aerr := evaluateImage()
 			if aerr != nil {
 				logger.Error("Error evaluating target image", zap.Error(aerr))
+			} else {
+				logger.Info("Scan result", zap.Any("Report", result))
 			}
-			logger.Info("Scan result", zap.Any("Report", result))
 		}
 
 		err = logger.Sync()

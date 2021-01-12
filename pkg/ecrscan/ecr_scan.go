@@ -38,7 +38,7 @@ func (e *Evaluator) Evaluate(target *Target) (Report, error) {
 	if err != nil {
 		return Report{}, fmt.Errorf("invalid target: %w", err)
 	}
-	e.Logger.Debug("Evaluating image",
+	e.Logger.Info("Evaluating image",
 		zap.String("repository", target.Repository),
 		zap.String("imageTag", target.ImageTag))
 	findings, err := e.getCurrentImageFindings(target)
@@ -56,7 +56,7 @@ func (e *Evaluator) Evaluate(target *Target) (Report, error) {
 
 // scan initiates an ECR vulnerability scan for an image.
 func (e *Evaluator) scan(target *Target) error {
-	e.Logger.Debug("Scanning image")
+	e.Logger.Info("Scanning image")
 	_, err := e.ECRClient.StartImageScan(&ecr.StartImageScanInput{
 		ImageId: &ecr.ImageIdentifier{
 			ImageTag: aws.String(target.ImageTag),
@@ -93,7 +93,7 @@ func (e *Evaluator) getCurrentImageFindings(target *Target) (*ecr.DescribeImageS
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			if aerr.Code() == ecr.ErrCodeScanNotFoundException {
-				e.Logger.Debug("No scan found.")
+				e.Logger.Info("No scan found")
 				scanNotFound = true
 			} else {
 				return nil, fmt.Errorf("describe image scan findings failed: %v", err)
