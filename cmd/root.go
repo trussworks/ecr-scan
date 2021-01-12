@@ -68,6 +68,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("could not initialize zap logger: %v", err)
 		}
+		defer logger.Sync()
 
 		if viper.GetBool("lambda") {
 			lambda.Start(HandleRequest)
@@ -78,11 +79,6 @@ var rootCmd = &cobra.Command{
 			} else {
 				logger.Info("Scan result", zap.Any("Report", result))
 			}
-		}
-
-		err = logger.Sync()
-		if err != nil {
-			log.Fatal("could not sync logger")
 		}
 	},
 }

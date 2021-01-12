@@ -1,6 +1,6 @@
 linters-settings:
   errcheck:
-    ignore: fmt:.*
+    ignore: fmt:.*,go.uber.org/zap:Sync
   govet:
     check-shadowing: true
   goimports:
