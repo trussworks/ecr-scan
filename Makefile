@@ -7,21 +7,19 @@ help:  ## Print the help documentation
 
 .PHONY: local_build
 local_build: ## Build ecr-scan locally
-	go build -o bin/ecr-scan .
+	@./scripts/local-build
 
 .PHONY: lambda_build
 lambda_build: ## Build lambda binary
-	docker image build -t ecr-scan-builder:"$(VERSION)" .
-	docker container run --rm -it -v "$(PWD)":/app ecr-scan-builder:$(VERSION) go build -o bin/ecr-scan .
+	@./scripts/lambda-build $(VERSION)
 
 .PHONY: lambda_release
 lambda_release: lambda_build ## Release lambda zip file to S3
-	zip -j ecr-scan.zip ./bin/ecr-scan
-	#aws s3 cp --sse AES256 ecr-scan.zip s3://"$(S3_BUCKET)"/ecr-scan/"$(VERSION)"/
+	@./scripts/lambda-release $(S3_BUCKET) $(VERSION)
 
-.PHONY: run_lambda
-run_lambda: lambda_build ## Run the lambda handler in docker
-	docker container run --rm -e LAMBDA=1 -e DOCKER_LAMBDA_STAY_OPEN=1 -p 9001:9001 -v "$(PWD)":/var/task:ro,delegated lambci/lambda:go1.x bin/ecr-scan
+.PHONY: lambda_run
+lambda_run: lambda_build ## Run the lambda handler in docker
+	@./scripts/lambda-run
 
 .PHONY: clean
 clean: ## Clean all generated files

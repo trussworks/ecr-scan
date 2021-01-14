@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -eux
+
+readonly s3_bucket="$1"
+readonly semver="$2"
+
+zip -j ecr-scan.zip ./bin/ecr-scan
+aws s3 cp --sse AES256 ecr-scan.zip s3://"${s3_bucket}"/ecr-scan/"${semver}"/
