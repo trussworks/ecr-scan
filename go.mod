@@ -3,8 +3,8 @@ module github.com/trussworks/ecr-scan
 go 1.15
 
 require (
-	github.com/aws/aws-lambda-go v1.21.0
-	github.com/aws/aws-sdk-go v1.36.14
+	github.com/aws/aws-lambda-go v1.22.0
+	github.com/aws/aws-sdk-go v1.36.28
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-playground/validator/v10 v10.4.1
 	github.com/kr/text v0.2.0 // indirect
@@ -16,7 +16,7 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.7.1
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	go.uber.org/zap v1.16.0
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/tools v0.0.0-20200506181757-c20a87c16a39 // indirect
