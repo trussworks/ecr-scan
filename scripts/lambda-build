@@ -2,7 +2,7 @@
 
 set -eux
 
-readonly semver="$1"
+version="$(git rev-parse HEAD)"
 
-docker image build -t ecr-scan-builder:"${semver}" .
-docker container run --rm -it -v "$(PWD)":/app ecr-scan-builder:"${semver}" go build -o bin/ecr-scan .
+docker image build -t ecr-scan-builder:"${version}" .
+docker container run --rm -it -v "$(PWD)":/app ecr-scan-builder:"${version}" go build -o bin/ecr-scan .

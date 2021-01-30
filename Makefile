@@ -1,20 +1,22 @@
 SHELL = /bin/sh
-VERSION = 0.0.1
 
 help:  ## Print the help documentation
 	@grep -E '^[/a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-test:
+check_git_status: ## Check for modified, added, and unstaged files
+	@./scripts/check-git-status
+
+test: ## Run unit tests
 	@./scripts/make-test
 
 local_build: test ## Build ecr-scan locally
 	@./scripts/local-build
 
-lambda_build: test ## Build lambda binary
-	@./scripts/lambda-build $(VERSION)
+lambda_build: test clean ## Build lambda binary
+	@./scripts/lambda-build
 
 lambda_release: lambda_build ## Release lambda zip file to S3
-	@./scripts/lambda-release $(S3_BUCKET) $(VERSION)
+	@./scripts/lambda-release $(S3_BUCKET)
 
 lambda_run: lambda_build ## Run the lambda handler in docker
 	@./scripts/lambda-run
@@ -25,4 +27,4 @@ clean: ## Clean all generated files
 
 default: help
 
-.PHONY: help test local_build lambda_build lambda_release lambda_run clean
+.PHONY: help check_git_status test local_build lambda_build lambda_release lambda_run clean

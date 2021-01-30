@@ -3,7 +3,8 @@
 set -eux
 
 readonly s3_bucket="$1"
-readonly semver="$2"
+version="$(git rev-parse HEAD)"
+zip_file="${version}".zip
 
-zip -j ecr-scan.zip ./bin/ecr-scan
-aws s3 cp --sse AES256 ecr-scan.zip s3://"${s3_bucket}"/ecr-scan/"${semver}"/
+zip -j "${zip_file}" ./bin/ecr-scan
+aws s3 cp --sse AES256 "${zip_file}" s3://"${s3_bucket}"/ecr-scan/"${zip_file}"
