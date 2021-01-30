@@ -15,7 +15,7 @@ local_build: test ## Build ecr-scan locally
 lambda_build: test clean ## Build lambda binary
 	@./scripts/lambda-build
 
-lambda_release: lambda_build ## Release lambda zip file to S3
+lambda_release: check_git_status lambda_build ## Release lambda zip file to S3
 	@./scripts/lambda-release $(S3_BUCKET)
 
 lambda_run: lambda_build ## Run the lambda handler in docker
