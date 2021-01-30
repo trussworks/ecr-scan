@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -eux
+
+readonly semver="$1"
+
+docker image build -t ecr-scan-builder:"${semver}" .
+docker container run --rm -it -v "$(PWD)":/app ecr-scan-builder:"${semver}" go build -o bin/ecr-scan .

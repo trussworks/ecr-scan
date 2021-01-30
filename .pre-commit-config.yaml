@@ -1,6 +1,6 @@
 repos:
   - repo: git://github.com/golangci/golangci-lint
-    rev: v1.35.1
+    rev: v1.35.2
     hooks:
       - id: golangci-lint
 
@@ -26,3 +26,18 @@ repos:
     rev: v1.0.0
     hooks:
       - id: circleci-validate
+
+  - repo: git://github.com/detailyang/pre-commit-shell
+    rev: 1.0.5
+    hooks:
+      - id: shell-lint
+
+  - repo: https://github.com/jumanjihouse/pre-commit-hooks
+    rev: 2.1.4
+    hooks:
+      - id: shellcheck
+
+  - repo: https://github.com/pryorda/dockerfilelint-precommit-hooks
+    rev: v0.1.0
+    hooks:
+      - id: dockerfilelint

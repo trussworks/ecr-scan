@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+set -ex
+
+docker container run --rm -e LAMBDA=1 -e DOCKER_LAMBDA_STAY_OPEN=1 -p 9001:9001 -v "${PWD}":/var/task:ro,delegated lambci/lambda:go1.x bin/ecr-scan
