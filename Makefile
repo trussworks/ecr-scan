@@ -9,7 +9,7 @@ check_git_status: ## Check for modified, added, and unstaged files
 test: ## Run unit tests
 	@./scripts/make-test
 
-local_build: test ## Build ecr-scan locally
+local_build: test clean ## Build ecr-scan locally
 	@./scripts/local-build
 
 lambda_build: test clean ## Build lambda binary
