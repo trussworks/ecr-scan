@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#
+# Slightly modififed version of git-dirty pre-commit check
+# https://github.com/jumanjihouse/pre-commit-hooks
+#
+# This script is invoked from the Makefile, not by pre-commit
+
+set -u
+
+output="$(git status --porcelain)"
+readonly output
+
+if [ -n "${output}" ]; then
+  echo "Git tree contains modified, added, or unstaged files."
+  echo "Git tree must be clean before releasing lambda to S3."
+  echo "${output}"
+  exit 1
+fi
