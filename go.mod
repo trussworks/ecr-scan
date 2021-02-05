@@ -3,6 +3,7 @@ module github.com/trussworks/ecr-scan
 go 1.15
 
 require (
+	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/aws/aws-lambda-go v1.22.0
 	github.com/aws/aws-sdk-go v1.37.1
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
