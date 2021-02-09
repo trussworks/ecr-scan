@@ -1,56 +1,33 @@
+version: 2.1
+references:
+  circleci: &circleci trussworks/circleci:1f3f01b9b8bdb160380a3b338e8b23c7dda067de
 jobs:
-  release:
+  build:
     docker:
     - auth:
         password: $DOCKER_PASSWORD
         username: $DOCKER_USERNAME
-      image: trussworks/circleci:29ab89fdada1f85c5d8fb685a2c71660f0c5f60c
-    steps:
-    - checkout
-    - setup_remote_docker
-    - run: goreleaser
-    - run:
-        command: docker login -u $DOCKER_USER -p $DOCKER_PASS
-        name: Login to Docker Hub
-    - run:
-        command: docker run -it trussworks/my-cli-tool:<< pipeline.git.tag >> help
-        name: Test that Docker container works
-    - run:
-        command: docker push trussworks/my-cli-tool:<< pipeline.git.tag >>
-        name: Docker push
-  validate:
-    docker:
-    - auth:
-        password: $DOCKER_PASSWORD
-        username: $DOCKER_USERNAME
-      image: trussworks/circleci:29ab89fdada1f85c5d8fb685a2c71660f0c5f60c
+      image: *circleci
     steps:
     - checkout
     - restore_cache:
         keys:
-        - pre-commit-dot-cache-{{ checksum ".pre-commit-config.yaml" }}
-    - run:
-        command: pre-commit run --all-files
-        name: Run pre-commit tests
+          - pre-commit-dot-cache-{{ checksum ".pre-commit-config.yaml" }}
+          - go-mod-sources-v1-{{ checksum "go.sum" }}
+    - run: make pre_commit
+    - run: make test
     - save_cache:
         key: pre-commit-dot-cache-{{ checksum ".pre-commit-config.yaml" }}
         paths:
-        - ~/.cache/pre-commit
-references:
-  circleci: trussworks/circleci:29ab89fdada1f85c5d8fb685a2c71660f0c5f60c
-version: 2.1
+          - ~/.cache/pre-commit
+    - save_cache:
+        key: go-mod-sources-v1-{{ checksum "go.sum" }}
+        paths:
+          - "~/go/pkg/mod"
 workflows:
-  release:
+  build:
     jobs:
-    - release:
-        filters:
-          branches:
-            ignore: /^.*/
-          tags:
-            only: /^v[0-9]+(\.[0-9]+)*(-.*)*/
-  validate:
-    jobs:
-    - validate:
+    - build:
         context:
-        - org-global
+          - org-global
   version: 2.1
