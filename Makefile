@@ -21,10 +21,13 @@ lambda_release: check_git_status lambda_build ## Release lambda zip file to S3
 lambda_run: lambda_build ## Run the lambda handler in docker
 	@./scripts/lambda-run
 
+pre_commit: ## Run all pre-commit checks
+	pre-commit run --all-files
+
 clean: ## Clean all generated files
 	rm -rf ./bin
 	rm -rf ./dist
 
 default: help
 
-.PHONY: help check_git_status test local_build lambda_build lambda_release lambda_run clean
+.PHONY: help check_git_status test local_build lambda_build lambda_release lambda_run pre_commit clean
