@@ -133,6 +133,10 @@ func (m *mockECRClient) DescribeImageScanFindings(input *ecr.DescribeImageScanFi
 	return nil, errors.New("error")
 }
 
+func (m *mockECRClient) WaitUntilImageScanComplete(input *ecr.DescribeImageScanFindingsInput) error {
+	return nil
+}
+
 func TestEvaluate(t *testing.T) {
 	tests := []struct {
 		target   *Target
@@ -292,7 +296,7 @@ func TestIsOldScan(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.description, func(t *testing.T) {
-			assert.Equal(t, tt.expected, evaluator.isOldScan(tt.findings))
+			assert.Equal(t, tt.expected, evaluator.isOldScan(tt.findings.ImageScanCompletedAt))
 		})
 	}
 }
