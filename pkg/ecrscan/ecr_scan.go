@@ -79,8 +79,8 @@ func (e *Evaluator) scan(target *Target) error {
 }
 
 // getCurrentImageFindings returns image scan findings for a target image. It
-// will wait until an image scan is complete and will initiate a scan if the
-// existing scan exceeds the max scan age.
+// will wait until an image scan is complete and will initiate a scan if an
+// existing scan is not found or if the existing scan exceeds the max scan age.
 func (e *Evaluator) getCurrentImageFindings(target *Target) (*ecr.DescribeImageScanFindingsOutput, error) {
 	imageScanFindingsInput := &ecr.DescribeImageScanFindingsInput{
 		ImageId: &ecr.ImageIdentifier{
@@ -114,7 +114,7 @@ func (e *Evaluator) getCurrentImageFindings(target *Target) (*ecr.DescribeImageS
 	if result.ImageScanFindings == nil {
 		return nil, errors.New("nil image scan findings")
 	}
-	// refresh old scans
+	// rescan if necessary
 	if e.isOldScan(result.ImageScanFindings.ImageScanCompletedAt) {
 		if scanErr := e.scan(target); scanErr != nil {
 			return nil, fmt.Errorf("scan failed: %v", err)
