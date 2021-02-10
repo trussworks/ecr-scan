@@ -45,6 +45,9 @@ func (e *Evaluator) Evaluate(target *Target) (Report, error) {
 	if err != nil {
 		return Report{}, fmt.Errorf("get current findings failed: %v", err)
 	}
+	if findings == nil {
+		return Report{}, fmt.Errorf("nil findings object")
+	}
 	findingsCount, err := e.calculateTotalFindings(findings.ImageScanFindings)
 	if err != nil {
 		return Report{}, fmt.Errorf("calculating total findings failed: %v", err)
@@ -56,6 +59,9 @@ func (e *Evaluator) Evaluate(target *Target) (Report, error) {
 
 // scan initiates an ECR vulnerability scan for an image.
 func (e *Evaluator) scan(target *Target) error {
+	if target == nil {
+		return errors.New("target must not be nil")
+	}
 	e.Logger.Info("Scanning image")
 	_, err := e.ECRClient.StartImageScan(&ecr.StartImageScanInput{
 		ImageId: &ecr.ImageIdentifier{
@@ -82,6 +88,9 @@ func (e *Evaluator) scan(target *Target) error {
 // will wait until an image scan is complete and will initiate a scan if an
 // existing scan is not found or if the existing scan exceeds the max scan age.
 func (e *Evaluator) getCurrentImageFindings(target *Target) (*ecr.DescribeImageScanFindingsOutput, error) {
+	if target == nil {
+		return nil, errors.New("target must not be nil")
+	}
 	imageScanFindingsInput := &ecr.DescribeImageScanFindingsInput{
 		ImageId: &ecr.ImageIdentifier{
 			ImageTag: aws.String(target.ImageTag),
@@ -111,8 +120,14 @@ func (e *Evaluator) getCurrentImageFindings(target *Target) (*ecr.DescribeImageS
 	if err != nil {
 		return nil, fmt.Errorf("describe image scan findings failed: %v", err)
 	}
+	if result == nil {
+		return nil, errors.New("nil result")
+	}
 	if result.ImageScanFindings == nil {
 		return nil, errors.New("nil image scan findings")
+	}
+	if result.ImageScanFindings.ImageScanCompletedAt == nil {
+		return nil, errors.New("nil image scan time")
 	}
 	// rescan if necessary
 	if e.isOldScan(result.ImageScanFindings.ImageScanCompletedAt) {
@@ -125,7 +140,8 @@ func (e *Evaluator) getCurrentImageFindings(target *Target) (*ecr.DescribeImageS
 }
 
 // isOldScan returns true if the image scan was completed more than MaxScanAge
-// hours ago relative to the current time; false otherwise.
+// hours ago relative to the current time; false otherwise. Passing in a nil
+// input will cause a panic runtime error.
 func (e *Evaluator) isOldScan(scanTime *time.Time) bool {
 	return time.Since(*scanTime).Hours() > float64(e.MaxScanAge)
 }
@@ -139,7 +155,7 @@ func (e *Evaluator) isOldScan(scanTime *time.Time) bool {
 // function calculates total findings based on the FindingSeverityCounts map.
 func (e *Evaluator) calculateTotalFindings(findings *ecr.ImageScanFindings) (int, error) {
 	if findings == nil {
-		return -1, errors.New("findings input is nil")
+		return -1, errors.New("findings must not be nil")
 	}
 	total := 0
 	for _, v := range findings.FindingSeverityCounts {
