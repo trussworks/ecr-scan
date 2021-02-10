@@ -36,7 +36,7 @@ func (e *Evaluator) Evaluate(target *Target) (Report, error) {
 	validate := validator.New()
 	err := validate.Struct(target)
 	if err != nil {
-		return Report{}, fmt.Errorf("invalid target: %w", err)
+		return Report{}, fmt.Errorf("invalid target: %v", err)
 	}
 	e.Logger.Info("Evaluating image",
 		zap.String("repository", target.Repository),
@@ -44,6 +44,9 @@ func (e *Evaluator) Evaluate(target *Target) (Report, error) {
 	findings, err := e.getCurrentImageFindings(target)
 	if err != nil {
 		return Report{}, fmt.Errorf("get current findings failed: %v", err)
+	}
+	if findings == nil {
+		return Report{}, fmt.Errorf("nil findings object")
 	}
 	findingsCount, err := e.calculateTotalFindings(findings.ImageScanFindings)
 	if err != nil {
@@ -56,6 +59,9 @@ func (e *Evaluator) Evaluate(target *Target) (Report, error) {
 
 // scan initiates an ECR vulnerability scan for an image.
 func (e *Evaluator) scan(target *Target) error {
+	if target == nil {
+		return errors.New("target must not be nil")
+	}
 	e.Logger.Info("Scanning image")
 	_, err := e.ECRClient.StartImageScan(&ecr.StartImageScanInput{
 		ImageId: &ecr.ImageIdentifier{
@@ -78,50 +84,65 @@ func (e *Evaluator) scan(target *Target) error {
 	return nil
 }
 
-// getImageFindings returns image scan findings for a target image. It will wait
-// until an image scan is complete and will initiate a scan if an existing scan
-// is not found.
+// getCurrentImageFindings returns image scan findings for a target image. It
+// will wait until an image scan is complete and will initiate a scan if an
+// existing scan is not found or if the existing scan exceeds the max scan age.
 func (e *Evaluator) getCurrentImageFindings(target *Target) (*ecr.DescribeImageScanFindingsOutput, error) {
-	// get findings
+	if target == nil {
+		return nil, errors.New("target must not be nil")
+	}
 	imageScanFindingsInput := &ecr.DescribeImageScanFindingsInput{
 		ImageId: &ecr.ImageIdentifier{
 			ImageTag: aws.String(target.ImageTag),
 		},
 		RepositoryName: aws.String(target.Repository)}
-	result, err := e.ECRClient.DescribeImageScanFindings(imageScanFindingsInput)
-	scanNotFound := false
+	// ensure scan exists
+	_, err := e.ECRClient.DescribeImageScanFindings(imageScanFindingsInput)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			if aerr.Code() == ecr.ErrCodeScanNotFoundException {
 				e.Logger.Info("No scan found")
-				scanNotFound = true
-			} else {
-				return nil, fmt.Errorf("describe image scan findings failed: %v", err)
+				if scanErr := e.scan(target); scanErr != nil {
+					return nil, fmt.Errorf("scan failed: %v", err)
+				}
+				return e.getCurrentImageFindings(target)
 			}
-		} else {
-			return nil, fmt.Errorf("describe image scan findings failed: %v", err)
 		}
+		return nil, fmt.Errorf("describe image scan findings failed: %v", err)
 	}
-
-	// initiate new scan if existing scan is old or nonexistent
-	if scanNotFound || e.isOldScan(result.ImageScanFindings) {
-		err = e.scan(target)
-		if err != nil {
+	// wait for scan to complete
+	err = e.ECRClient.WaitUntilImageScanComplete(imageScanFindingsInput)
+	if err != nil {
+		return nil, fmt.Errorf("wait for image scan to complete failed: %v", err)
+	}
+	// get findings
+	result, err := e.ECRClient.DescribeImageScanFindings(imageScanFindingsInput)
+	if err != nil {
+		return nil, fmt.Errorf("describe image scan findings failed: %v", err)
+	}
+	if result == nil {
+		return nil, errors.New("nil result")
+	}
+	if result.ImageScanFindings == nil {
+		return nil, errors.New("nil image scan findings")
+	}
+	if result.ImageScanFindings.ImageScanCompletedAt == nil {
+		return nil, errors.New("nil image scan time")
+	}
+	// rescan if necessary
+	if e.isOldScan(result.ImageScanFindings.ImageScanCompletedAt) {
+		if scanErr := e.scan(target); scanErr != nil {
 			return nil, fmt.Errorf("scan failed: %v", err)
 		}
-		result, err = e.ECRClient.DescribeImageScanFindings(imageScanFindingsInput)
-		if err != nil {
-			return nil, fmt.Errorf("describe image scan findings failed: %v", err)
-		}
+		return e.getCurrentImageFindings(target)
 	}
-
 	return result, nil
 }
 
 // isOldScan returns true if the image scan was completed more than MaxScanAge
-// hours ago relative to the current time; false otherwise.
-func (e *Evaluator) isOldScan(findings *ecr.ImageScanFindings) bool {
-	scanTime := findings.ImageScanCompletedAt
+// hours ago relative to the current time; false otherwise. Passing in a nil
+// input will cause a panic runtime error.
+func (e *Evaluator) isOldScan(scanTime *time.Time) bool {
 	return time.Since(*scanTime).Hours() > float64(e.MaxScanAge)
 }
 
@@ -134,7 +155,7 @@ func (e *Evaluator) isOldScan(findings *ecr.ImageScanFindings) bool {
 // function calculates total findings based on the FindingSeverityCounts map.
 func (e *Evaluator) calculateTotalFindings(findings *ecr.ImageScanFindings) (int, error) {
 	if findings == nil {
-		return -1, errors.New("findings input is nil")
+		return -1, errors.New("findings must not be nil")
 	}
 	total := 0
 	for _, v := range findings.FindingSeverityCounts {
