@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/aws/aws-lambda-go v1.22.0
-	github.com/aws/aws-sdk-go v1.37.6
+	github.com/aws/aws-sdk-go v1.37.10
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-playground/validator/v10 v10.4.1
 	github.com/kr/text v0.2.0 // indirect
