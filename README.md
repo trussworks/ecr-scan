@@ -8,13 +8,13 @@ Run it from the command-line or as a Lambda function.
 
 ## Installation
 
-```sh
+```shell
 go get -u github.com/trussworks/ecr-scan
 ```
 
 ## Usage
 
-```sh
+```shell
 ecr-scan is an application for analyzing ECR scan findings
 
 Usage:
@@ -37,6 +37,29 @@ will re-scan the image.
 
 Run the command like this:
 
-```sh
+```shell
 ecr-scan --profile app-dev --region us-west-2 --repository app-ecr --tag 50e9216704a67c97664dbbac521b3a674c61cee9
+```
+
+## Developer Setup
+
+### Available options
+
+```shell
+$ make help
+check_git_status               Check for modified, added, and unstaged files
+clean                          Clean all generated files
+help                           Print the help documentation
+lambda_build                   Build lambda binary
+lambda_release                 Release lambda zip file to S3
+lambda_run                     Run the lambda handler in docker
+local_build                    Build ecr-scan locally
+pre_commit                     Run all pre-commit checks
+test                           Run unit tests
+```
+
+### Release deployment package
+
+```shell
+make S3_BUCKET=your-s3-bucket lambda_release
 ```
