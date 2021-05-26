@@ -3,7 +3,7 @@ module github.com/trussworks/ecr-scan
 go 1.15
 
 require (
-	github.com/aws/aws-lambda-go v1.23.0
+	github.com/aws/aws-lambda-go v1.24.0
 	github.com/aws/aws-sdk-go v1.38.47
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-playground/validator/v10 v10.6.1
