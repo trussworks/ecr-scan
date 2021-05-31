@@ -17,10 +17,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.7.0
-	go.uber.org/zap v1.16.0
-	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
-	golang.org/x/tools v0.0.0-20200506181757-c20a87c16a39 // indirect
+	go.uber.org/zap v1.17.0
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/ini.v1 v1.57.0 // indirect
-	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
 )
