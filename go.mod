@@ -3,7 +3,7 @@ module github.com/trussworks/ecr-scan
 go 1.15
 
 require (
-	github.com/aws/aws-lambda-go v1.24.0
+	github.com/aws/aws-lambda-go v1.25.0
 	github.com/aws/aws-sdk-go v1.40.2
 	github.com/go-playground/validator/v10 v10.8.0
 	github.com/kr/text v0.2.0 // indirect
