@@ -1,6 +1,6 @@
 version: 2.1
 references:
-  circleci: &circleci trussworks/circleci:1f3f01b9b8bdb160380a3b338e8b23c7dda067de
+  circleci: &circleci trussworks/circleci:5c4677b05aceab93961b9b25ca7554f1145ef941
 jobs:
   build:
     docker:
