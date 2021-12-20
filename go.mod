@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/aws/aws-lambda-go v1.27.1
-	github.com/aws/aws-sdk-go v1.42.19
+	github.com/aws/aws-sdk-go v1.42.23
 	github.com/go-playground/validator/v10 v10.9.0
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.10.0
