@@ -8,8 +8,8 @@ require (
 	github.com/go-playground/validator/v10 v10.10.1
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/viper v1.12.0
-	github.com/stretchr/objx v0.1.1 // indirect
-	github.com/stretchr/testify v1.7.2
+	github.com/stretchr/objx v0.4.0 // indirect
+	github.com/stretchr/testify v1.7.3
 	go.uber.org/zap v1.21.0
 )
 
