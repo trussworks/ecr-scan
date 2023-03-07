@@ -1,11 +1,11 @@
 repos:
   - repo: https://github.com/golangci/golangci-lint
-    rev: v1.42.1
+    rev: v1.51.2
     hooks:
       - id: golangci-lint
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+    rev: v4.4.0
     hooks:
       - id: check-json
       - id: check-merge-conflict
@@ -16,26 +16,27 @@ repos:
         args:
           - --autofix
       - id: trailing-whitespace
+      - id: check-symlinks
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.29.0
+    rev: v0.33.0
     hooks:
       - id: markdownlint
 
-  - repo: https://github.com/trussworks/pre-commit-hooks
-    rev: v1.1.0
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 0.7.16
     hooks:
-      - id: circleci-validate
+      - id: mdformat
+        additional_dependencies:
+          - mdformat-gfm
+          - mdformat-toc
 
   - repo: https://github.com/detailyang/pre-commit-shell
     rev: 1.0.5
     hooks:
       - id: shell-lint
-
-  - repo: https://github.com/jumanjihouse/pre-commit-hooks
-    rev: 2.1.5
-    hooks:
-      - id: shellcheck
 
   - repo: https://github.com/pryorda/dockerfilelint-precommit-hooks
     rev: v0.1.0
