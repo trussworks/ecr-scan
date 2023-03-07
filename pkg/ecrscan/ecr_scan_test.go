@@ -117,9 +117,10 @@ var testCases = map[string]*ecr.DescribeImageScanFindingsOutput{
 // the future; a positive number represents a time in the past.
 //
 // Example:
-//   relativeTimePointer(-3) -- 3 hours from now
-//   relativeTimePointer(1)  -- 1 hour ago
-//   relativeTimePointer(0)  -- now
+//
+//	relativeTimePointer(-3) -- 3 hours from now
+//	relativeTimePointer(1)  -- 1 hour ago
+//	relativeTimePointer(0)  -- now
 func relativeTimePointer(hours float64) *time.Time {
 	t := time.Now()
 	newT := t.Add(-time.Duration(hours) * time.Hour)

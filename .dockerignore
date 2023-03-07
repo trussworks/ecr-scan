@@ -1,2 +1,6 @@
 # build artifacts
 bin
+.github
+renovate.json
+.pre-commit-config.yaml
+.markdownlintrc
