@@ -10,22 +10,23 @@ linters-settings:
 
 linters:
   enable:
-    - deadcode
     - errcheck
     - gocritic
     - gofmt
     - goimports
-    - golint
     - gosec
     - govet
     - ineffassign
     - staticcheck
-    - structcheck
     - typecheck
-    - varcheck
+    - revive
   disable:
     - gosimple #deprecated https://github.com/golangci/golangci-lint/issues/357
     - unused #deprecated https://github.com/dominikh/go-tools/tree/master/cmd/unused
+    - golint
+    - varcheck
+    - deadcode
+    - structcheck
   fast: false
 
 issues:

@@ -2,4 +2,4 @@
 
 set -x
 
-go build -o bin/ecr-scan .
+go build -o bin/ecr-scan ./cmd/ecrscan

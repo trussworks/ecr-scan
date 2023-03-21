@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/trussworks/ecr-scan/pkg/ecrscan"
+	"github.com/trussworks/ecr-scan/lambda/ecrscan"
 	"go.uber.org/zap"
 )
 
