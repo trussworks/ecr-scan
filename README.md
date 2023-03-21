@@ -1,4 +1,8 @@
-# ecr-scan
+# This repo is deprecated
+
+It's our recommendation folks use Trivy or Grype.
+
+## ecr-scan
 
 ## Description
 
