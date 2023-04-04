@@ -1,6 +1,10 @@
-# This repo is deprecated
+# DEPRECATION NOTICE
 
-It's our recommendation folks use Trivy or Grype.
+This repository has been deprecated and is no longer maintained. Should you need
+to continue to use it, please fork the repository. Thank you.
+
+As alternatives, we recommend that project teams consider Trivy and/or Grype for
+image vulnerability scans.
 
 ## ecr-scan
 
